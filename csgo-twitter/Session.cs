@@ -121,6 +121,7 @@ namespace csgo_twitter
             if (!_checkedPosts.Any(o => o.Id == item.Id))
             {
                 _checkedPosts.Add(new PostHolder(item.Id));
+                _info.CheckedSize = _checkedPosts.Count();
                 _queuedPosts.Add(item);
             }
         }
