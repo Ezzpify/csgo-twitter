@@ -33,6 +33,8 @@ namespace csgo_twitter
 
         public int MinutesBetweenChecks { get; set; } = 5;
 
+        public int MinutesBetweenReplies { get; set; } = 15;
+
         public bool LoadSettings(string filePath)
         {
             if (File.Exists(filePath))
@@ -44,6 +46,7 @@ namespace csgo_twitter
                     RedditSettings = settings.RedditSettings;
                     TwitterSettings = settings.TwitterSettings;
                     MinutesBetweenChecks = settings.MinutesBetweenChecks;
+                    MinutesBetweenReplies = settings.MinutesBetweenReplies;
 
                     return true;
                 }

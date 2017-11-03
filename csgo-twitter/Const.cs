@@ -8,6 +8,7 @@ namespace csgo_twitter
 {
     class Const
     {
+        public static string LOG_PATH = "Checked.json";
         public static string SETTINGS_PATH = "Settings.json";
         public static string URL_SOURCE = "https://github.com/Ezzpify/csgo-twitter";
         public static string URL_ISSUES = "https://github.com/Ezzpify/csgo-twitter/issues";

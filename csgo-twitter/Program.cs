@@ -27,10 +27,13 @@ namespace csgo_twitter
                 if ((session = new Session(settings)).Run())
                 {
                     Console.Title = Utils.GetConsoleTitle(true);
-
                     while (session.IsRunning())
                     {
-                        Thread.Sleep(1000);
+                        if (Console.ReadLine() == "q")
+                        {
+                            session.Kill();
+                            break;
+                        }
                     }
                 }
                 else
