@@ -50,7 +50,6 @@ namespace csgo_twitter
                 /*Reddit initializing*/
                 var webAgent = new BotWebAgent(_settings.RedditSettings.Username, _settings.RedditSettings.Password, _settings.RedditSettings.ClientID, _settings.RedditSettings.ClientSecret, Const.URL_REDIRECT);
                 _reddit = new Reddit(webAgent, true);
-                _reddit.RateLimit = WebAgent.RateLimitMode.SmallBurst;
                 _subreddit = _reddit.GetSubreddit(Const.SUBREDDIT);
 
                 /*Twitter initializing*/
@@ -102,6 +101,9 @@ namespace csgo_twitter
                     Thread.CurrentThread.IsBackground = true;
                     foreach (var comment in _subreddit.CommentStream)
                     {
+                        if (comment.AuthorName == _settings.RedditSettings.Username)
+                            continue;
+
                         string reply = GetCommentReply(comment.Body);
                         if (!string.IsNullOrWhiteSpace(reply))
                             AddToQueue(new Queue(comment.Id, comment, Queue.PostType.Comment, reply));
@@ -119,9 +121,15 @@ namespace csgo_twitter
 
             while (!_postBgw.CancellationPending)
             {
-                var posts = _subreddit.Hot.Take(25);
+                List<Post> posts = _subreddit.Hot.Take(25).ToList();
+                posts.AddRange(_subreddit.Rising.Take(25).ToList());
+                posts.AddRange(_subreddit.New.Take(25).ToList());
+
                 foreach (var post in posts)
                 {
+                    if (post.AuthorName == _settings.RedditSettings.Username)
+                        continue;
+
                     if (post.IsSelfPost)
                     {
                         string reply = GetCommentReply(post.SelfText);
@@ -209,12 +217,12 @@ namespace csgo_twitter
                     tweet.CreatedBy.Name,
                     tweet.CreatedBy.ScreenName,
                     tweet.Url,
-                    tweet.CreatedBy.Url,
+                    "https://twitter.com/" + tweet.CreatedBy.ScreenName,
                     tweet.Text,
                     tweet.CreatedAt));
             }
 
-            return Utils.AppendCommentExtras(string.Join("\n\n--\n\n", formattedTweets));
+            return Utils.AppendCommentExtras(string.Join("\n\n", formattedTweets));
         }
     }
 }

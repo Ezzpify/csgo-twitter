@@ -29,7 +29,7 @@ namespace csgo_twitter
                 username,
                 userlink,
                 createdAt.ToLongDateString().Replace(" ", " ^^"),
-                content,
+                Regex.Replace(content, @"\s+", " "),
                 link);
         }
 
