@@ -13,7 +13,6 @@ namespace csgo_twitter
         public static string URL_SOURCE = "https://github.com/Ezzpify/csgo-twitter";
         public static string URL_ISSUES = "https://github.com/Ezzpify/csgo-twitter/issues";
         public static string URL_REDIRECT = "https://reddit.com";
-        public static string SUBREDDIT = "/r/GlobalOffensive";
         public static string CONSOLE_TITLE = "csgo-twitter";
     }
 }

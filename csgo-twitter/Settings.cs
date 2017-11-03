@@ -35,6 +35,8 @@ namespace csgo_twitter
 
         public int MinutesBetweenReplies { get; set; } = 15;
 
+        public string Subreddit { get; set; } = "/r/GlobalOffensive";
+
         public bool LoadSettings(string filePath)
         {
             if (File.Exists(filePath))
@@ -47,6 +49,7 @@ namespace csgo_twitter
                     TwitterSettings = settings.TwitterSettings;
                     MinutesBetweenChecks = settings.MinutesBetweenChecks;
                     MinutesBetweenReplies = settings.MinutesBetweenReplies;
+                    Subreddit = settings.Subreddit;
 
                     return true;
                 }

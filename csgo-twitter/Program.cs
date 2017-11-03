@@ -12,7 +12,6 @@ namespace csgo_twitter
         {
             Session session = null;
             Settings settings = new Settings();
-            Console.Title = Utils.GetConsoleTitle(false);
 
             if (!settings.LoadSettings(Const.SETTINGS_PATH))
             {
@@ -26,7 +25,6 @@ namespace csgo_twitter
             {
                 if ((session = new Session(settings)).Run())
                 {
-                    Console.Title = Utils.GetConsoleTitle(true);
                     while (session.IsRunning())
                     {
                         if (Console.ReadLine() == "q")

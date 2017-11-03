@@ -24,7 +24,7 @@ namespace csgo_twitter
              *
              */
 
-            return string.Format("{0} ([@{1}]({2}))\n\n^^{3}\n\n> {4}\n\n--\n\n[^^Link ^^to ^^tweet]({5})",
+            return string.Format("{0} ([@{1}]({2}))\n\n^^{3}\n\n> {4}\n\n[^^Link ^^to ^^tweet]({5})",
                 displayName,
                 username,
                 userlink,
@@ -45,9 +45,9 @@ namespace csgo_twitter
             return $"{comment}\n\n--\n\n{extras}";
         }
 
-        public static string GetConsoleTitle(bool running)
+        public static string GetConsoleTitle(bool running, InfoHolder info)
         {
-            return $"{Const.CONSOLE_TITLE} | {(running ? "[RUNNING]" : "[OFFLINE]")}";
+            return $"{Const.CONSOLE_TITLE} {(running ? "[RUNNING]" : "[OFFLINE]")} [Queue: {info.QueueSize} | Checked: {info.CheckedSize}]";
         }
 
         public static List<long> GetTweetIds(string comment)

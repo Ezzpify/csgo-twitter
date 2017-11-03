@@ -1,15 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.ComponentModel;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.Security.Authentication;
+using System.Runtime.InteropServices;
 using RedditSharp;
 using RedditSharp.Things;
 using Tweetinvi;
-using System.IO;
 using Newtonsoft.Json;
 
 namespace csgo_twitter
@@ -17,18 +18,43 @@ namespace csgo_twitter
     class Session
     {
         private Reddit _reddit;
+        private InfoHolder _info;
         private Settings _settings;
         private Subreddit _subreddit;
 
         private List<Queue> _queuedPosts = new List<Queue>();
-        private List<string> _checkedPosts = new List<string>();
+        private List<PostHolder> _checkedPosts = new List<PostHolder>();
 
         private BackgroundWorker _postBgw = new BackgroundWorker();
         private BackgroundWorker _queueBgw = new BackgroundWorker();
 
+        [DllImport("Kernel32")]
+        private static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
+
+        private delegate bool EventHandler(CtrlType sig);
+        private static EventHandler _handler;
+
+        enum CtrlType
+        {
+            CTRL_C_EVENT = 0,
+            CTRL_BREAK_EVENT = 1,
+            CTRL_CLOSE_EVENT = 2,
+            CTRL_LOGOFF_EVENT = 5,
+            CTRL_SHUTDOWN_EVENT = 6
+        }
+
+        private bool Handler(CtrlType sig)
+        {
+            Console.WriteLine("Exiting...");
+            Kill();
+
+            return true;
+        }
+
         public Session(Settings settings)
         {
             _settings = settings;
+            _info = new InfoHolder();
             
             _postBgw.WorkerSupportsCancellation = true;
             _postBgw.RunWorkerCompleted += _postBgw_RunWorkerCompleted;
@@ -43,14 +69,17 @@ namespace csgo_twitter
         {
             /*Read checked posts*/
             if (File.Exists(Const.LOG_PATH))
-                _checkedPosts = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(Const.LOG_PATH));
+            {
+                _checkedPosts = JsonConvert.DeserializeObject<List<PostHolder>>(File.ReadAllText(Const.LOG_PATH));
+                _info.CheckedSize = _checkedPosts.Count();
+            }
 
             try
             {
                 /*Reddit initializing*/
                 var webAgent = new BotWebAgent(_settings.RedditSettings.Username, _settings.RedditSettings.Password, _settings.RedditSettings.ClientID, _settings.RedditSettings.ClientSecret, Const.URL_REDIRECT);
                 _reddit = new Reddit(webAgent, true);
-                _subreddit = _reddit.GetSubreddit(Const.SUBREDDIT);
+                _subreddit = _reddit.GetSubreddit(_settings.Subreddit);
 
                 /*Twitter initializing*/
                 Auth.SetUserCredentials(_settings.TwitterSettings.ConsumerKey, _settings.TwitterSettings.ConsumerSecret, _settings.TwitterSettings.AccessToken, _settings.TwitterSettings.AccessTokenSecret);
@@ -61,10 +90,14 @@ namespace csgo_twitter
                 return false;
             }
 
+            _handler += new EventHandler(Handler);
+            SetConsoleCtrlHandler(_handler, true);
+
             if (_reddit.User != null && _subreddit != null)
             {
                 _postBgw.RunWorkerAsync();
                 _queueBgw.RunWorkerAsync();
+                UpdateConsoleTitle();
                 return true;
             }
 
@@ -85,11 +118,16 @@ namespace csgo_twitter
 
         private void AddToQueue(Queue item)
         {
-            if (!_checkedPosts.Contains(item.Id))
+            if (!_checkedPosts.Any(o => o.Id == item.Id))
             {
-                _checkedPosts.Add(item.Id);
+                _checkedPosts.Add(new PostHolder(item.Id));
                 _queuedPosts.Add(item);
             }
+        }
+
+        private void UpdateConsoleTitle()
+        {
+            Console.Title = Utils.GetConsoleTitle(true, _info);
         }
 
         private void _postBgw_DoWork(object sender, DoWorkEventArgs e)
@@ -121,11 +159,7 @@ namespace csgo_twitter
 
             while (!_postBgw.CancellationPending)
             {
-                List<Post> posts = _subreddit.Hot.Take(25).ToList();
-                posts.AddRange(_subreddit.Rising.Take(25).ToList());
-                posts.AddRange(_subreddit.New.Take(25).ToList());
-
-                foreach (var post in posts)
+                foreach (var post in _subreddit.New.Take(25))
                 {
                     if (post.AuthorName == _settings.RedditSettings.Username)
                         continue;
@@ -142,8 +176,6 @@ namespace csgo_twitter
                         if (!string.IsNullOrWhiteSpace(reply))
                             AddToQueue(new Queue(post.Id, post, Queue.PostType.Post, reply));
                     }
-
-                    _checkedPosts.Add(post.Id);
                 }
 
                 /*Sleep for minutes converted to milliseconds*/
@@ -183,6 +215,7 @@ namespace csgo_twitter
                         }
 
                         toRemove.Add(queue.Id);
+                        _checkedPosts.Where(o => o.Id == queue.Id).ToList().ForEach(o => o.Posted = true);
                         Thread.Sleep(_settings.MinutesBetweenReplies * 60 * 1000);
                     }
                     catch (Exception ex)
@@ -194,6 +227,8 @@ namespace csgo_twitter
                 if (toRemove.Count() > 0)
                     _queuedPosts = _queuedPosts.Where(o => !toRemove.Contains(o.Id)).ToList();
 
+                _info.QueueSize = _queuedPosts.Count();
+                UpdateConsoleTitle();
                 Thread.Sleep(5000);
             }
         }
